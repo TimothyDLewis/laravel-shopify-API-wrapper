@@ -216,7 +216,6 @@ class API
 		    $request = array_merge($defaults, $userData);
 	    }
 
-
 	    // Send & accept JSON data
 	    $defaultHeaders = array();
 	    $defaultHeaders[] = 'Content-Type: application/json; charset=' . $request['CHARSET'];
@@ -258,7 +257,11 @@ class API
 	    {
 		    if (is_array($request['DATA']))
 		    {
-		    	$appendUrl = $this->constructAppendUrl($request['DATA']);
+		    	if($request["METHOD"] == "GET"){
+		    		$appendUrl = $this->constructAppendUrl($request['DATA']);
+		    	} else if($request["METHOD"] == "PUT" || $request["METHOD"] == "POST" || $request["METHOD"] == "PATCH"){
+		    		$options[CURLOPT_POSTFIELDS] = json_encode($request['DATA']); 
+		    	}
 		    }
 		    else
 		    {
@@ -266,7 +269,11 @@ class API
 			    json_decode($request['DATA']);
 			    if (json_last_error() == JSON_ERROR_NONE)
 			    {
-			    	$appendUrl = $this->constructAppendUrl(json_decode($request['DATA']));
+			    	if($request["METHOD"] == "GET"){
+			    		$appendUrl = $this->constructAppendUrl(json_decode($request['DATA']));
+			    	} else if($request["METHOD"] == "PUT" || $request["METHOD"] == "POST" || $request["METHOD"] == "PATCH"){
+			    		$options[CURLOPT_POSTFIELDS] = $request['DATA']; 
+			    	}
 			    }
 			    else
 			    {
@@ -275,8 +282,12 @@ class API
 		    }
 	    }
 
-	    if($appendUrl !== ""){
-	    	$options[CURLOPT_URL] = $url.$appendUrl;
+	    if($request["METHOD"] == "GET"){
+	    	if($appendUrl !== ""){
+	    		$options[CURLOPT_URL] = $url.$appendUrl;
+	    	}
+	    } else if($request["METHOD"] == "PUT" || $request["METHOD"] == "POST" || $request["METHOD"] == "PATCH"){
+	    	$options[CURLOPT_URL] = $url;
 	    }
 
         curl_setopt_array($ch, $options);
@@ -345,14 +356,14 @@ class API
     			$appendString .= "&";
     		}
     		if(is_array($value)){
-    			$appendString .= $key."=";
+    			$appendString .= urlencode($key)."=";
     			foreach($value AS $index => $newValue){
-    				$appendString .= $newValue.",";
+    				$appendString .= urlencode($newValue).",";
     				$index++;
     			}
     			$appendString = substr($appendString, 0, -1);
     		} else {
-    			$appendString .= $key."=".$value;
+    			$appendString .= urlencode($key)."=".urlencode($value);
     			$index++;
     		}
     	}
