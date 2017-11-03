@@ -253,11 +253,12 @@ class API
         );
 
 	    // Checks if DATA is being sent
+	    $appendUrl = "";
 	    if (!empty($request['DATA']))
 	    {
 		    if (is_array($request['DATA']))
 		    {
-			    $options[CURLOPT_POSTFIELDS] = json_encode($request['DATA']);
+		    	$appendUrl = $this->constructAppendUrl($request['DATA']);
 		    }
 		    else
 		    {
@@ -265,7 +266,7 @@ class API
 			    json_decode($request['DATA']);
 			    if (json_last_error() == JSON_ERROR_NONE)
 			    {
-				    $options[CURLOPT_POSTFIELDS] = $request['DATA'];
+			    	$appendUrl = $this->constructAppendUrl(json_decode($request['DATA']));
 			    }
 			    else
 			    {
@@ -274,11 +275,14 @@ class API
 		    }
 	    }
 
+	    if($appendUrl !== ""){
+	    	$options[CURLOPT_URL] = $url.$appendUrl;
+	    }
+
         curl_setopt_array($ch, $options);
 
         $response = curl_exec($ch);
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-
 
         // Data returned
         $result = json_decode(substr($response, $headerSize), $request['RETURNARRAY']);
@@ -329,8 +333,31 @@ class API
 	    {
 		    return $result;
 	    }
+    }
 
+    private function constructAppendUrl($data){
+    	$appendString = "";
+    	$index = 0;
+    	foreach($data AS $key => $value){
+    		if($index == 0){
+    			$appendString .= "?";
+    		} else {
+    			$appendString .= "&";
+    		}
+    		if(is_array($value)){
+    			$appendString .= $key."=";
+    			foreach($value AS $index => $newValue){
+    				$appendString .= $newValue.",";
+    				$index++;
+    			}
+    			$appendString = substr($appendString, 0, -1);
+    		} else {
+    			$appendString .= $key."=".$value;
+    			$index++;
+    		}
+    	}
 
+    	return $appendString;
     }
 
 } // End of API class
